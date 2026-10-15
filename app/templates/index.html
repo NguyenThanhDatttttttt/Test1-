@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EduResult | Tra cứu điểm thi</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#1b2940;background:#f3f6fc}*{box-sizing:border-box}body{margin:0}
+header{background:#152e59;color:#fff;padding:22px max(22px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between;align-items:center;gap:16px}
+.brand{font-size:22px;font-weight:800}.sub{color:#bfd0ee;font-size:13px;margin-top:4px}main{max-width:1100px;margin:38px auto;padding:0 22px}
+.card{background:#fff;border:1px solid #e1e8f2;border-radius:16px;padding:26px;box-shadow:0 8px 26px #142c5508}.login{max-width:450px;margin:45px auto}
+h1{font-size:27px;margin:0 0 8px}h2{margin:0}p{color:#65748c;line-height:1.6}label{display:block;font-weight:650;margin:16px 0 7px}
+input,select{width:100%;padding:12px;border:1px solid #ccd6e5;border-radius:9px;font:inherit;background:#fff}
+button{border:0;border-radius:9px;background:#285cce;color:white;padding:11px 17px;font:inherit;font-weight:650;cursor:pointer}
+button.secondary{background:#eaf0fc;color:#23457d}button.link{background:transparent;color:#285cce;padding:3px 0}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}.profile{display:flex;align-items:center;gap:12px;padding:15px;background:#f6f8fc;border-radius:12px;margin:20px 0}
+.avatar{width:43px;height:43px;display:grid;place-items:center;background:#dce7ff;color:#244c99;border-radius:50%;font-weight:800}.meta{font-size:13px;color:#6b7b94}
+table{width:100%;border-collapse:collapse;margin-top:20px}th,td{text-align:left;padding:14px 10px;border-bottom:1px solid #edf0f6}th{font-size:12px;color:#71809a;text-transform:uppercase}
+.score{font-size:18px;font-weight:800;color:#214fa8}.pill{display:inline-block;padding:5px 10px;background:#e9f7ef;color:#197448;border-radius:20px;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}.metric{background:#f6f8fc;padding:14px;border-radius:10px}.metric span{display:block;color:#71809a;font-size:12px;margin-bottom:6px}
+.notice{min-height:20px;color:#ad3344;font-size:14px}.hint{margin-top:18px;padding:12px;background:#fff7e7;border:1px solid #f1dfb6;border-radius:9px;font-size:12px;color:#70551e}
+[hidden]{display:none!important}@media(max-width:650px){main{margin:22px auto}.card{padding:18px}.grid{grid-template-columns:1fr 1fr}th:nth-child(2),td:nth-child(2){display:none}header{padding:18px 20px}}
+</style></head><body>
+<header><div><div class="brand">EduResult <span style="font-weight:400">| Cổng tra cứu điểm thi</span></div><div class="sub">Hệ thống mô phỏng phục vụ thực hành an toàn thông tin</div></div><button id="logout" class="secondary" hidden>Đăng xuất</button></header>
+<main>
+<section id="login-card" class="card login"><h1>Tra cứu kết quả học tập</h1><p>Đăng nhập để xem kết quả các học phần đã công bố.</p>
+<form id="login-form"><label for="username">Tên đăng nhập</label><input id="username" required autocomplete="username" placeholder="Ví dụ: alice">
+<label for="password">Mật khẩu</label><input id="password" type="password" required autocomplete="current-password" placeholder="Nhập mật khẩu">
+<p id="login-msg" class="notice" role="status"></p><button type="submit">Đăng nhập</button></form>
+<div class="hint"><b>Tài khoản demo:</b> alice / AliceLab123! · bob / BobLab123! · chi / ChiLab123!</div></section>
+<section id="dashboard" hidden><div class="card"><div class="toolbar"><div><h1>Kết quả học tập</h1><p>Danh sách kết quả thuộc tài khoản của bạn</p></div><button id="reload" class="secondary">Làm mới</button></div>
+<div class="profile"><div class="avatar" id="avatar">SV</div><div><b id="student-name"></b><div class="meta" id="student-meta"></div></div></div>
+<table><thead><tr><th>Mã kết quả</th><th>Học phần</th><th>Học kỳ</th><th>Điểm</th><th>Trạng thái</th></tr></thead><tbody id="rows"></tbody></table><p id="dash-msg" class="notice"></p></div>
+<section id="detail" class="card" style="margin-top:20px" hidden><div class="toolbar"><div><h2 id="subject"></h2><p id="semester"></p></div><button id="close" class="secondary">Đóng chi tiết</button></div>
+<div class="grid"><div class="metric"><span>Mã kết quả</span><b id="exam-id"></b></div><div class="metric"><span>Mã sinh viên</span><b id="student-id"></b></div><div class="metric"><span>Điểm tổng kết</span><b class="score" id="score"></b></div></div>
+<p><span id="status" class="pill"></span></p><label for="new-status">Trạng thái (API lab)</label><select id="new-status"><option>Đã công bố</option><option>Đang rà soát</option></select>
+<p>Chức năng cập nhật được cung cấp để kiểm thử phân quyền API trong lab.</p><button id="save">Cập nhật trạng thái</button><p id="detail-msg" class="notice"></p></section></section></main>
+<script>
+const $=id=>document.getElementById(id);let selected=null;
+async function api(path,opts={}){const r=await fetch(path,{credentials:'same-origin',...opts});const d=await r.json().catch(()=>({error:'Phản hồi không hợp lệ'}));if(!r.ok)throw Error(d.error||'Yêu cầu thất bại');return d}
+function loggedOut(){$('login-card').hidden=false;$('dashboard').hidden=true;$('logout').hidden=true;$('detail').hidden=true;selected=null}
+async function refresh(){const me=await api('/api/me'),list=await api('/api/exams');$('student-name').textContent=me.name;$('student-meta').textContent=me.student_id+' · Tài khoản: '+me.username;$('avatar').textContent=me.name.split(' ').slice(-2).map(x=>x[0]).join('').toUpperCase();$('rows').replaceChildren();
+for(const x of list){const tr=document.createElement('tr');const td1=document.createElement('td'),td2=document.createElement('td'),td3=document.createElement('td'),td4=document.createElement('td'),td5=document.createElement('td'),b=document.createElement('button');b.className='link';b.textContent='#'+x.id;b.onclick=()=>openExam(x.id);td1.append(b);td2.textContent=x.subject;td3.textContent=x.semester;td4.innerHTML='<span class="score"></span>';td4.firstChild.textContent=Number(x.score).toFixed(1);td5.textContent=x.status;tr.append(td1,td2,td3,td4,td5);$('rows').append(tr)}
+$('login-card').hidden=true;$('dashboard').hidden=false;$('logout').hidden=false;$('dash-msg').textContent=''}
+async function openExam(id){try{const x=await api('/api/exams/'+id);selected=Number(id);$('detail').hidden=false;$('subject').textContent=x.subject;$('semester').textContent=x.semester;$('exam-id').textContent=x.id;$('student-id').textContent=x.student_id+' — '+x.student_name;$('score').textContent=Number(x.score).toFixed(1);$('status').textContent=x.status;$('new-status').value=x.status;$('detail-msg').textContent='';$('detail').scrollIntoView({behavior:'smooth',block:'nearest'})}catch(e){$('dash-msg').textContent=e.message}}
+$('login-form').onsubmit=async e=>{e.preventDefault();$('login-msg').textContent='';try{await api('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('username').value,password:$('password').value})});e.target.reset();await refresh()}catch(x){$('login-msg').textContent=x.message}};
+$('logout').onclick=async()=>{await api('/api/logout',{method:'POST'});loggedOut()};
+$('reload').onclick=()=>refresh().catch(e=>$('dash-msg').textContent=e.message);
+$('close').onclick=()=>{$('detail').hidden=true;selected=null};
+$('save').onclick=async()=>{if(selected===null)return;try{await api('/api/exams/'+selected,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:$('new-status').value})});$('detail-msg').textContent='Đã cập nhật trạng thái.';await refresh();await openExam(selected)}catch(e){$('detail-msg').textContent=e.message}};
+api('/api/me').then(refresh).catch(loggedOut);
+</script></body></html>
